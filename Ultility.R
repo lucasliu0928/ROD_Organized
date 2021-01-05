@@ -822,7 +822,7 @@ main_func <- function(data_to_anlaysis,label_col){
     mrmr_selected_features <- mrmr_res[[3]]
     causality_df <- mrmr_res[[4]]
     
-    #if label col is found in sleect features meaning some other feature has never been added to the list
+    #if label col is found in selected features meaning some other feature has never been added to the list
     #so just drop the label col
     label_col_idxes <- which(mrmr_selected_features == label_col)
     if(length(label_col_idxes) > 0){
