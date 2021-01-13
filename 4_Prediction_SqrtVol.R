@@ -5,11 +5,15 @@ library(reshape2)
 library(ggplot2)
 library(xgboost)
 
-
 ###Input and output directory
-in_dir <- "/Users/lucasliu/Desktop/DrChen_Projects/ROD_Project/Intermediate_Data/0103_21/"
-out_dir <- "/Users/lucasliu/Desktop/DrChen_Projects/ROD_Project/Intermediate_Data/0112_21/out1/"
-out_dir2 <- "/Users/lucasliu/Desktop/DrChen_Projects/ROD_Project/Intermediate_Data/0112_21/out2/"
+in_dir <- "../Intermediate_Data/0112_21/"
+out_dir <- "../Intermediate_Data/0112_21/out1/"
+out_dir2 <- "../Intermediate_Data/0112_21/out2/"
+out_dir3 <-  "../Intermediate_Data/0112_21/out3/"
+
+dir.create(file.path(out_dir))
+dir.create(file.path(out_dir2))
+dir.create(file.path(out_dir3))
 
 ###################################################
 ### Load feature data
@@ -104,7 +108,6 @@ analysiis_label_df <- analysiis_label_df[-which(rownames(analysiis_label_df) %in
 
 #reoder to match and add label to data input
 data_input$Starting_SqRtVOLUME_LABEL <- analysiis_label_df[match(rownames(analysiis_label_df),rownames(data_input)),label_col_name]
-
 
 ##generating list of features for each  experiment
 label_col_seq <- c(rep("Starting_SqRtVOLUME_LABEL",3))
@@ -235,4 +238,80 @@ Final_perf$Final_fs <- Final_fs
 Final_perf$all_labeltb <- all_labeltb
 write.csv(Final_perf,paste0(out_dir2,"/Perf_tb.csv"))
 
+##########################################################################
+###Prediction 3:  Start non-high, get higher vs. Start non-high, stays non-high 
+##########################################################################
+analysiis_label_df <- Label_df
+analysiis_label_df$New_Trend_Label <- NA
+analysiis_label_df$New_Trend_Label[which(analysiis_label_df$Changing_Label == "nonH_nonH")] <- 0 
+analysiis_label_df$New_Trend_Label[which(analysiis_label_df$Changing_Label == "nonH_H")] <- 1
+table(analysiis_label_df$New_Trend_Label)  #34 15
+analysiis_label_df <- analysiis_label_df[-which(is.na(analysiis_label_df$New_Trend_Label)==T),]
 
+data_input <- updated_comb_df
+label_col_name <- "New_Trend_Label"
+analysis_IDs <- rownames(analysiis_label_df) #49
+length(analysis_IDs)
+
+#subset Ids has label
+Id_idxes <- which(rownames(data_input) %in% analysis_IDs)
+data_input <- data_input[Id_idxes,]
+
+#Remove the co2 value at yr1 == 106 and -1
+ptsID_to_remove <- rownames(data_input)[which(data_input[,"CO21_yr1"] %in% c(106,-1))]
+data_input <- data_input[-which(rownames(data_input) %in% ptsID_to_remove),]
+analysiis_label_df <- analysiis_label_df[-which(rownames(analysiis_label_df) %in% ptsID_to_remove),]
+
+#reoder to match and add label to data input
+data_input$New_Trend_Label <- analysiis_label_df[match(rownames(analysiis_label_df),rownames(data_input)),label_col_name]
+table(data_input$New_Trend_Label)
+
+##generating list of features for each  experiment
+label_col_seq <- c(rep("New_Trend_Label",3))
+initial_features_names_list <- c("bl,yr1,yr2","Diff0_1_and_Diff1_2","ALL")
+
+initial_features_list <- list()
+for (i in 1:length(initial_features_names_list)){
+  curr_feature_list_names <- initial_features_names_list[i]
+  
+  if (curr_feature_list_names == "bl"){
+    initial_features_list[[i]] <- Final_bl_features
+  }else if (curr_feature_list_names == "bl,yr1"){
+    initial_features_list[[i]] <- c(Final_bl_features,Final_yr1_features)
+  }else if (curr_feature_list_names == "bl,yr1,yr2"){
+    initial_features_list[[i]] <- c(Final_bl_features,Final_yr1_features,Final_yr2_features)
+  }else if (curr_feature_list_names == "Diff0_1"){
+    initial_features_list[[i]]  <- Diff0_1_features
+  }else if (curr_feature_list_names == "Diff1_2"){
+    initial_features_list[[i]]  <- Diff1_2_features
+  }else if (curr_feature_list_names == "Diff0_2"){
+    initial_features_list[[i]]  <- Diff0_2_features
+  }else if (curr_feature_list_names == "Diff0_1_and_Diff1_2"){
+    initial_features_list[[i]]  <- c(Diff0_1_features,Diff1_2_features)
+  }else if (curr_feature_list_names == "ALL"){
+    initial_features_list[[i]]  <- c(Final_bl_features,Final_yr1_features,Final_yr2_features,
+                                     Diff0_1_features,Diff1_2_features)
+  }
+  
+}
+
+
+res <- experiment_func(label_col_seq,initial_features_list,data_input,out_dir3)
+Final_perf <- res[[1]]
+initail_fs <- res[[2]]
+Final_fs <- res[[3]]
+label_table <- res[[4]]
+all_labeltb <- do.call(rbind,label_table)
+top_features_names_list2 <- res[[5]]
+for(i in 1:length(top_features_names_list2)){
+  curr_important_fs <- top_features_names_list2[[i]]
+  write.csv(curr_important_fs,paste0(out_dir3,"/Exp",i,"_important_fs",".csv"))
+  
+}
+
+Final_perf$Features <- initial_features_names_list
+Final_perf$Outcome <- label_col_seq
+Final_perf$initail_fs <- initail_fs
+Final_perf$Final_fs <- Final_fs
+Final_perf$all_labeltb <- all_labeltb
+write.csv(Final_perf,paste0(out_dir3,"/Perf_tb.csv"))
