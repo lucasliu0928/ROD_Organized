@@ -2,8 +2,8 @@ source("Ultility.R")
 library(ggplot2)
 
 ###Input and output directory
-in_dir <- "/Users/lucasliu/Desktop/DrChen_Projects/ROD_Project/Intermediate_Data/0103_21/"
-out_dir <- "/Users/lucasliu/Desktop/DrChen_Projects/ROD_Project/Intermediate_Data/0103_21/"
+in_dir <- "../Intermediate_Data/0112_21/"
+out_dir <- "../Intermediate_Data/0112_21/"
 
 ###################################################
 ### Load feature data
