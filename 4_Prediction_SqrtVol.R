@@ -8,8 +8,9 @@ library(xgboost)
 
 ###Input and output directory
 in_dir <- "/Users/lucasliu/Desktop/DrChen_Projects/ROD_Project/Intermediate_Data/0103_21/"
-out_dir <- "/Users/lucasliu/Desktop/DrChen_Projects/ROD_Project/Intermediate_Data/0103_21/out1/"
-out_dir2 <- "/Users/lucasliu/Desktop/DrChen_Projects/ROD_Project/Intermediate_Data/0103_21/out2/"
+out_dir <- "/Users/lucasliu/Desktop/DrChen_Projects/ROD_Project/Intermediate_Data/0112_21/out1/"
+out_dir2 <- "/Users/lucasliu/Desktop/DrChen_Projects/ROD_Project/Intermediate_Data/0112_21/out2/"
+
 ###################################################
 ### Load feature data
 ###################################################
@@ -82,6 +83,24 @@ analysis_IDs <- rownames(analysiis_label_df) #107
 #subset Ids has label
 Id_idxes <- which(rownames(data_input) %in% analysis_IDs)
 data_input <- data_input[Id_idxes,]
+
+#Output the input data for checking outliers
+#checkoutlier_df <- final_df[which(rownames(final_df) %in% analysis_IDs),]
+#write.csv(checkoutlier_df,"/Users/lucasliu/Desktop/ROD_data_input.csv")
+
+#'@NOTE: Nothing updated in this file Lucasfile2_CorrectedCO2.xlsx
+# #Updated Manually corrected outlier values of CO2
+# corrected_dir <- "/Users/lucasliu/Desktop/DrChen_Projects/ROD_Project/Data/Lucasfile2_CorrectedCO2.xlsx"
+# outlier_corrected_df <- read.xlsx(corrected_dir, sheet = 1)
+# outlier_corrected_df <- outlier_corrected_df[match(rownames(data_input),outlier_corrected_df$X1),]
+# 
+# check <- cbind(outlier_corrected_df[,c("X1","Dialysate_bl","CO2_bl")],data_input[,c("Dialysate_bl","CO2_bl")])
+# colnames(check)[2:3] <- c("Dialysate_bl_updated","CO2_bl_updated")
+
+#Remove the co2 value at yr1 == 106 and -1
+ptsID_to_remove <- rownames(data_input)[which(data_input[,"CO21_yr1"] %in% c(106,-1))]
+data_input <- data_input[-which(rownames(data_input) %in% ptsID_to_remove),]
+analysiis_label_df <- analysiis_label_df[-which(rownames(analysiis_label_df) %in% ptsID_to_remove),]
 
 #reoder to match and add label to data input
 data_input$Starting_SqRtVOLUME_LABEL <- analysiis_label_df[match(rownames(analysiis_label_df),rownames(data_input)),label_col_name]
@@ -156,6 +175,11 @@ length(analysis_IDs)
 #subset Ids has label
 Id_idxes <- which(rownames(data_input) %in% analysis_IDs)
 data_input <- data_input[Id_idxes,]
+
+#Remove the co2 value at yr1 == 106 and -1
+ptsID_to_remove <- rownames(data_input)[which(data_input[,"CO21_yr1"] %in% c(106,-1))]
+data_input <- data_input[-which(rownames(data_input) %in% ptsID_to_remove),]
+analysiis_label_df <- analysiis_label_df[-which(rownames(analysiis_label_df) %in% ptsID_to_remove),]
 
 #reoder to match and add label to data input
 data_input$New_Trend_Label <- analysiis_label_df[match(rownames(analysiis_label_df),rownames(data_input)),label_col_name]
