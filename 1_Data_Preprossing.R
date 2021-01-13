@@ -1,11 +1,14 @@
 source("Ultils_LoadData_Funcs.R")
 source("Ultility.R")
+library(openxlsx)
 
 ###Input and output directory
-in_dir <- "/Users/lucasliu/Desktop/DrChen_Projects/ROD_Project/Data/"
-out_dir <- "/Users/lucasliu/Desktop/DrChen_Projects/ROD_Project/Intermediate_Data/0103_21/"
+in_dir <- "../Data/"
 data_filename <-  "CombinedROD_BMD_CAC_Bioch_Echo.csv"
-reviewed_dir <- "/Users/lucasliu/Desktop/DrChen_Projects/ROD_Project/Data/"
+reviewed_dir <- "../Data/"
+out_dir <- "../Intermediate_Data/0112_21/"
+
+dir.create(file.path(out_dir))
 
 ##############################################################################################
 ##                Section 1: Load ROD Data and Clean and remove unwanted Features           ##
@@ -67,7 +70,7 @@ for (i in 1:length(toupdate_idxes)){
 for (i in 1:nrow(updated_df)){
   curr_id <- updated_df[i,"ID"]
   curr_idx <- which(gsub(" |\\.","",raw_data_df$ID) == gsub(" |\\.","",curr_id))
-  print(curr_idx)
+  #print(curr_idx)
   
   if ( length(curr_idx) > 0){ 
     ##CASCORE
