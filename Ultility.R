@@ -846,12 +846,21 @@ main_func <- function(data_to_anlaysis,label_col){
     all_perfs[i, ] <- bl_perforamnces[which(rownames(bl_perforamnces) == "Average"),]
   }
   
-  #return best idxes
-  max_auc_idxes <- which(all_perfs[,"AUC"] == max(all_perfs[,"AUC"]))
-  updated_all_perfs <- all_perfs[max_auc_idxes,]
-  max_acc_idx_inmaxauc <- which(updated_all_perfs[,"ACC"] == max(updated_all_perfs[,"ACC"]))
-  best_idx <- max_auc_idxes[max_acc_idx_inmaxauc]
-  final_selected_features <- selected_features_list[[best_idx[1]]]
+  # #return best idxes
+  # max_auc_idxes <- which(all_perfs[,"AUC"] == max(all_perfs[,"AUC"]))
+  # updated_all_perfs <- all_perfs[max_auc_idxes,]
+  # max_acc_idx_inmaxauc <- which(updated_all_perfs[,"ACC"] == max(updated_all_perfs[,"ACC"]))
+  # best_idx <- max_auc_idxes[max_acc_idx_inmaxauc]
+  # final_selected_features <- selected_features_list[[best_idx[1]]]
+  
+  #update 011221: return the best index of average of (AUC and ACC)
+  avg_auc_acc <- rowMeans(all_perfs[,c("AUC","ACC")])
+  max_avg_auc_acc_indexes <- which(avg_auc_acc == max(avg_auc_acc))
+  max_avgaucacc_perfs <- all_perfs[max_avg_auc_acc_indexes,]
+  #if multiple, choose the one with max AUC among them
+  max_auc_idx <- which(max_avgaucacc_perfs[,"AUC"] == max(max_avgaucacc_perfs[,"AUC"]))
+  best_idx <- max_avg_auc_acc_indexes[max_auc_idx]
+  final_selected_features <- selected_features_list[[best_idx[1]]] #if still multiple, choose the 1st one
   
   #re-run classifiaction for the best number of mrmr features
   res <- Train_andValidaiton_func(updated_data_to_anlaysis,c(final_selected_features,label_col),label_col)
