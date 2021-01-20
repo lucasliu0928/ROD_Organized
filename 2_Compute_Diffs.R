@@ -1,6 +1,6 @@
 ###Input and output directory
-in_dir <- "../Intermediate_Data/0112_21/"
-out_dir <- "../Intermediate_Data/0112_21/"
+in_dir <- "../Intermediate_Data/0117_21/"
+out_dir <- "../Intermediate_Data/0117_21/"
 
 ###################################################
 ### Load staionary feature data
@@ -15,7 +15,7 @@ final_df <- final_df[,-1]
 ###################################################
 byyear_feature_table <- read.csv(paste0(in_dir,"byyearfeature_table.csv"), stringsAsFactors = F)
 byyear_feature_table <- byyear_feature_table[,-1]
-byyear_feature_table_noNAs <- byyear_feature_table[complete.cases(byyear_feature_table),]
+byyear_feature_table_noNAs <- byyear_feature_table[complete.cases(byyear_feature_table),] # exclude features that only has baseline values
 
 ###################################################
 ### Compute normlized diff for all features and outcomes
