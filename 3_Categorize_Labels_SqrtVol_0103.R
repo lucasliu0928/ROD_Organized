@@ -2,11 +2,11 @@ source("Ultility.R")
 library(ggplot2)
 
 ###Input and output directory
-in_dir <- "../Intermediate_Data/0112_21/"
-out_dir <- "../Intermediate_Data/0112_21/"
+in_dir <- "../Intermediate_Data/0117_21/"
+out_dir <- "../Intermediate_Data/0117_21/"
 
 ###################################################
-### Load feature data
+###I. Load feature data
 ###################################################
 #1. staionary feature data
 final_df <- read.csv(paste0(in_dir,"data_stationary.csv"), stringsAsFactors = F)
@@ -17,21 +17,13 @@ final_df <- final_df[,-1]
 final_delta_df <- read.csv(paste0(in_dir,"data_Diff.csv"), stringsAsFactors = F)
 rownames(final_delta_df) <- final_delta_df$X
 final_delta_df <- final_delta_df[,-1]
-
 reorder_tomatch_df <- final_delta_df[match(rownames(final_delta_df), rownames(final_df)),]
+
+#3. Combine stationary feature and feature difference.
 comb_df <- cbind(final_df, reorder_tomatch_df)
 
-#3.remove pts has no baseline value
-nobl_idx <- which(is.na(comb_df[,"SqRtVOLUMEA_bl"])==T)
-
-#4.remove pts has no yr1 nor yr2 value
-noyr1and2_idx <- which(is.na(comb_df[,"SqRtVOLUME1A_yr1"])==T & is.na(comb_df[,"SqRtVOLUME2A_yr2"])==T )
-
-#5. remove pts no bl, or no yr1 and yr2
-comb_df <- comb_df[-c(noyr1and2_idx,nobl_idx),]
-
 ###################################################
-##1. catogorical sqrtvolA outcome for baseline, 1yr , 2yr
+##II. catogorical sqrtvolA outcome for baseline, 1yr , 2yr
 #Non-high risk : sqrtvol < 19.1  (at baseline or 1st or 2nd yr.)
 #High Risk:      sqrtvol >= 19.1 (at baseline or 1st or 2nd yr.)
 ###################################################
@@ -104,18 +96,6 @@ write.csv(Stationary_outcome_df,paste0(out_dir,"Outcome_SqRtVOLUME.csv"))
 
 
 
-###################################################
-#'@NOTE: this section can be used to get chaning trend label (ex: "SqRtVOLUMEA_Diff0_2" in comb_df)
-#1. Get high and non-high group idxes
-# start_high_grp_Ids <- rownames(Stationary_outcome_df)[start_high_grp_idexes]
-# start_nonhigh_grp_Ids <- rownames(Stationary_outcome_df)[start_non_high_grp_idexes]
-# 
-# h_grp_idxes <- which(rownames(comb_df) %in% start_high_grp_Ids)
-# nonh_grp_idxes <- which(rownames(comb_df) %in% start_nonhigh_grp_Ids)
-# 
-# h_grp_diff_df <- comb_df[h_grp_idxes,] #58
-# nonh_grp_diff_df <- comb_df[nonh_grp_idxes,] #49
-###################################################
 
 
 
