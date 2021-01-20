@@ -6,7 +6,7 @@ library(openxlsx)
 in_dir <- "../Data/"
 data_filename <-  "CombinedROD_BMD_CAC_Bioch_Echo.csv"
 reviewed_dir <- "../Data/"
-out_dir <- "../Intermediate_Data/0112_21/"
+out_dir <- "../Intermediate_Data/0117_21/"
 
 dir.create(file.path(out_dir))
 
@@ -22,6 +22,12 @@ yr1_features <- byyear_res[[2]]
 yr2_features <- byyear_res[[3]]
 outcomes <- byyear_res[[4]] 
 
+#patient with SqRtVOLUME == 0
+ID1 <- which(raw_data_df[,"SqRtVOLUMEA"] == 0)
+ID2 <- which(raw_data_df[,"SqRtVOLUME1A"] == 0)
+ID3 <- which(raw_data_df[,"SqRtVOLUME2A"] == 0)
+check <- raw_data_df[c(ID1,ID2,ID3),c("ID","SqRtVOLUMEA","SqRtVOLUME1A","SqRtVOLUME2A")]
+write.csv(check,"/Users/lucasliu/Desktop/Patients_SqRtVol0.csv")
 
 ##############################################################################################
 # Section1B: Load Manully checked negative trend pts (added 01/03/21)
@@ -65,7 +71,7 @@ for (i in 1:length(toupdate_idxes)){
 }
 
 ###################################################
-## update values in raw_data_df
+## update values in updated_df
 ###################################################
 for (i in 1:nrow(updated_df)){
   curr_id <- updated_df[i,"ID"]
@@ -112,24 +118,37 @@ for (i in 1:nrow(updated_df)){
 ##############################################################################################
 ##                Section 2: Excluding outlier patients on some features                    ##
 ##############################################################################################
-#2.exclude outliers from CASCOREA,RFN3Dcortical,PO4BIND1A,SqRtVOLUMEA 
+#1.exclude outliers from CASCOREA,RFN3Dcortical,PO4BIND1A,SqRtVOLUMEA 
 #the outlier of sqrtvolumns was not removed for cascore predition model, check this funciton below
 updated_raw_df_outlier_removed <- remove_outlier_pts_func(raw_data_df)
 
-#3.Exclude  pts CASCORE == 0 
+#2. Recode pts with CASCORE == 0 to NA
 updated_raw_df_outlier_removed[which(updated_raw_df_outlier_removed[,"CASCOREA"] == 0),"CASCOREA"] <- NA
 updated_raw_df_outlier_removed[which(updated_raw_df_outlier_removed[,"CASCORE1A"] == 0),"CASCORE1A"] <- NA
 updated_raw_df_outlier_removed[which(updated_raw_df_outlier_removed[,"CASCORE2A"] == 0),"CASCORE2A"] <- NA
+updated_raw_df_outlier_removed[which(updated_raw_df_outlier_removed[,"SqRtVOLUMEA"] == 0),"SqRtVOLUMEA"] <- NA
+updated_raw_df_outlier_removed[which(updated_raw_df_outlier_removed[,"SqRtVOLUME1A"] == 0),"SqRtVOLUME1A"] <- NA
+updated_raw_df_outlier_removed[which(updated_raw_df_outlier_removed[,"SqRtVOLUME2A"] == 0),"SqRtVOLUME2A"] <- NA
 
 
-#4.Exclude  pts CASCORE <= 10 all time
+
+#3.Exclude  pts CASCORE <= 10 all time
 #CASCORE <= 10 or NA at bl, and (cascore <= 10 or NA at yr1) and (cascore <= 10 or NA at yr2)
 cond1 <- updated_raw_df_outlier_removed[,"CASCOREA"] <= 10 | is.na(updated_raw_df_outlier_removed[,"CASCOREA"]) ==T
 cond2 <- updated_raw_df_outlier_removed[,"CASCORE1A"] <= 10 | is.na(updated_raw_df_outlier_removed[,"CASCORE1A"]) ==T
 cond3 <- updated_raw_df_outlier_removed[,"CASCORE2A"] <= 10 | is.na(updated_raw_df_outlier_removed[,"CASCORE2A"]) ==T
-pts_cascoreLT10_idxes <- which(cond1 & cond2 & cond3)
-length(pts_cascoreLT10_idxes) #294
+pts_cascoreLT10_idxes <- which(cond1 & cond2 & cond3) #294
 updated_raw_df_outlier_removed <- updated_raw_df_outlier_removed[-pts_cascoreLT10_idxes,]
+
+#4A.get pts has no baseline value
+nobl_idx <- which(is.na(updated_raw_df_outlier_removed[,"SqRtVOLUMEA"])==T)
+
+#4B.get pts has no yr1 nor yr2 value
+noyr1and2_idx <- which(is.na(updated_raw_df_outlier_removed[,"SqRtVOLUME1A"])==T & is.na(updated_raw_df_outlier_removed[,"SqRtVOLUME2A"])==T )
+
+#5. remove pts no bl, or no yr1 and yr2
+updated_raw_df_outlier_removed <- updated_raw_df_outlier_removed[-c(noyr1and2_idx,nobl_idx),]
+
 
 ##############################################################################################
 ##                Section 3: Updated/Clean and remove unwanted Features                     ##
@@ -180,5 +199,4 @@ byyear_feature_outcome_table[which(is.na(byyear_feature_outcome_table[,"Yr2"])==
 
 write.csv(analysis_df, paste0(out_dir,"data_stationary.csv"))
 write.csv(byyear_feature_outcome_table, paste0(out_dir,"byyearfeature_table.csv"))
-
 
