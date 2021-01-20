@@ -141,11 +141,23 @@ update_CASCORE_func <- function(dat){
 
 #4. This function remove outlier patients for particular features (RFN3Dcortical, and CASCOREA)
 remove_outlier_pts_func <-function(dat){
-      dat <- raw_data_df
+      #dat <- raw_data_df
       
-      #muanlly remove two outlier extreme values
+      #Manually remove two outlier extreme values
       dat <- dat[-which(dat[,"RFN3Dcortical"] >=30000),]
       dat <- dat[-which(dat[,"PO4BIND1A"] >= 4000),]
+      
+      #Manually code outlier values of CO2 to NA (Added 01172021)
+      #'@NOTE: Nothing updated in this file Lucasfile2_CorrectedCO2.xlsx
+      # #Updated Manually corrected outlier values of CO2
+      # corrected_dir <- "/Users/lucasliu/Desktop/DrChen_Projects/ROD_Project/Data/Lucasfile2_CorrectedCO2.xlsx"
+      # outlier_corrected_df <- read.xlsx(corrected_dir, sheet = 1)
+      # outlier_corrected_df <- outlier_corrected_df[match(rownames(data_input),outlier_corrected_df$X1),]
+      
+      CO2_BL_outliers_idxes <- which(dat[,"CO2"] %in% c(97))
+      dat[CO2_BL_outliers_idxes,"CO2"] <- NA
+      CO2_Yr1_outliers_idxes <- which(dat[,"CO21"] %in% c(106,-1))
+      dat[CO2_Yr1_outliers_idxes,"CO21"] <- NA
       
       #Remove CASCORE outliers <p2.5 or <p97.5
       all_cascore_values <- unlist(dat[,c("CASCOREA","CASCORE1A","CASCORE2A")])
@@ -402,28 +414,3 @@ catogorize_turnover_func <- function(dat){
 }
 
 
-
-# ##################################################################
-# ##                          Section 2:                          ##
-# ##                       Check Histo data                       ##
-# ##################################################################
-# ROD1_Histo_data <- read.xlsx(paste0(data_dir, "ROD1 histo only.xlsx"), sheet = 1)
-# #Clean Data
-# ROD1_Histo_data <- ROD1_Histo_data[, -1]
-# colnames(ROD1_Histo_data) <- as.character(ROD1_Histo_data[1,])
-# ROD1_Histo_data <- ROD1_Histo_data[-1, ]
-# ROD1_Histo_data$ID<-gsub(" |\\.","",ROD1_Histo_data$ID)    #baseline ID
-# 
-# ###get outcome 
-# shared_Ids_indices <- which(ROD1_Histo_data$ID %in% updated_ROD_data$ID)
-# updated_ROD1_Histo_data <- ROD1_Histo_data[shared_Ids_indices,]
-# 
-# CASCOREA_values<- updated_ROD_data[match(updated_ROD1_Histo_data[,"ID"], updated_ROD_data[,"ID"]),"CASCOREA"]
-# CASCORE1A_values<- updated_ROD_data[match(updated_ROD1_Histo_data[,"ID"], updated_ROD_data[,"ID"]),"CASCORE1A"]
-# CASCORE2A_values<- updated_ROD_data[match(updated_ROD1_Histo_data[,"ID"], updated_ROD_data[,"ID"]),"CASCORE2A"]
-# 
-# updated_ROD1_Histo_data$CASCOREA <- CASCOREA_values
-# updated_ROD1_Histo_data$CASCORE1A <- CASCORE1A_values
-# updated_ROD1_Histo_data$CASCORE2A <- CASCORE2A_values
-# 
-# 
