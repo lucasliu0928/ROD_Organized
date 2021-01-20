@@ -877,6 +877,34 @@ main_func <- function(data_to_anlaysis,label_col){
 }
 
 
+#this function add analysis label column to the data input
+experiment_setup_func <- function(data_input, analysis_label_df, label_col_name, grp0_name, grp1_name){
+  #analysis_label_df <- Label_df
+  #label_col_name <- "Starting_SqRtVOLUME_LABEL"
+  #data_input <- updated_comb_df
+  #grp0_name <- start_nonH
+  #grp1_name <- start_H
+  
+  
+  #Code label to 0 and 1
+  analysis_label_df[which(analysis_label_df[,label_col_name] == grp0_name), label_col_name] <- 0 
+  analysis_label_df[which(analysis_label_df[,label_col_name] == grp1_name), label_col_name] <- 1
+  table(analysis_label_df$Starting_SqRtVOLUME_LABEL) #47 58
+  
+  #subset Ids has label in data input for experiments
+  analysis_IDs <- rownames(analysis_label_df) #105
+  Id_idxes <- which(rownames(data_input) %in% analysis_IDs)
+  updated_data_input <- data_input[Id_idxes,]
+  
+  #reoder to match patient ID and add label to data input
+  updated_data_input[,label_col_name] <- analysis_label_df[match(rownames(analysis_label_df),rownames(updated_data_input)),label_col_name]
+  updated_data_input[,label_col_name] <- as.numeric(updated_data_input[,label_col_name])
+  
+  return(updated_data_input)
+}
+
+
+
 experiment_func <- function(label_col_seq,initial_features_list,data_input,plot_outdir){
   final_perforamnces_list <- list()
   important_features_matrix_list <- list()
@@ -908,12 +936,12 @@ experiment_func <- function(label_col_seq,initial_features_list,data_input,plot_
   #plot important features
   for (i in 1:length(initial_features_list)){
     curr_important_features_matrix <- important_features_matrix_list[[i]]
-    png(paste0(plot_outdir,"Exp_",i,"all_fs_",".png"),height = 3000,width = 2000,res = 100)
+    png(paste0(plot_outdir,"FeatureSet_",i,"all_fs_",".png"),height = 3000,width = 2000,res = 100)
     p<-Plot_FeatureImportance_func(curr_important_features_matrix,"",0,0)
     print(p)
     dev.off()
     
-    png(paste0(plot_outdir,"Exp_",i,"top_fs_",".png"),height = 800,width = 800,res = 100)
+    png(paste0(plot_outdir,"FeatureSet_",i,"top_fs_",".png"),height = 800,width = 800,res = 100)
     if (length(curr_important_features_matrix$Feature) > 10){
       top_important_features <- curr_important_features_matrix$Feature[1:10] #top10
       p2<-Plot_FeatureImportance_func(curr_important_features_matrix,"",1,10)
@@ -931,7 +959,7 @@ experiment_func <- function(label_col_seq,initial_features_list,data_input,plot_
   Overall_performance <- do.call(rbind,final_perforamnces_list)
   avg_score_indexes <- seq(6,6*length(initial_features_list),6)
   updated_Overall_performance <- Overall_performance[avg_score_indexes,] #return the average perf(from Sampling) 
-  
+  rownames(updated_Overall_performance) <- paste0("FeatureSet",seq(1,length(initial_features_list)))
   return(list(updated_Overall_performance,n_of_inital_features,n_of_final_features,label_table,top_features_names_list))
 }
 
@@ -999,4 +1027,180 @@ find_distribution_SqrtVol_diff01_and_diff02 <- function(analysis_grp_df){
   threshold_high <- round(0 + sd_pos_diff,3)
   threshold_lower <- 0
   return(list(all_diff,threshold_lower,threshold_high))
+}
+
+
+#this function reads the user input string, 
+#then return lists of feature names for each experiemnts identified in experiment_features_names_list
+get_feature_list_func <- function(experiment_features_names_list,Final_bl_features,Final_yr1_features,Final_yr2_features, Diff0_1_features,Diff1_2_features){
+
+  initial_features_list <- list()
+  for (i in 1:length(experiment_features_names_list)){
+    curr_feature_list_names <- experiment_features_names_list[i]
+    
+    if (curr_feature_list_names == "bl"){
+      initial_features_list[[i]] <- Final_bl_features
+    }else if (curr_feature_list_names == "bl,yr1"){
+      initial_features_list[[i]] <- c(Final_bl_features,Final_yr1_features)
+    }else if (curr_feature_list_names == "bl,yr1,yr2"){
+      initial_features_list[[i]] <- c(Final_bl_features,Final_yr1_features,Final_yr2_features)
+    }else if (curr_feature_list_names == "Diff0_1"){
+      initial_features_list[[i]]  <- Diff0_1_features
+    }else if (curr_feature_list_names == "Diff1_2"){
+      initial_features_list[[i]]  <- Diff1_2_features
+    }else if (curr_feature_list_names == "Diff0_2"){
+      initial_features_list[[i]]  <- Diff0_2_features
+    }else if (curr_feature_list_names == "Diff0_1_and_Diff1_2"){
+      initial_features_list[[i]]  <- c(Diff0_1_features,Diff1_2_features)
+    }else if (curr_feature_list_names == "ALL"){
+      initial_features_list[[i]]  <- c(Final_bl_features,Final_yr1_features,Final_yr2_features,
+                                       Diff0_1_features,Diff1_2_features)
+    }
+    
+  }
+  return(initial_features_list)
+}
+
+
+#normality test function
+normality_test_func <- function(data_input,group_name,feature_name){
+  #group_name <- outcome_label
+  #feature_name <- curr_f
+  
+  #remove NAs
+  na_idxes <- which(is.na(data_input[,feature_name]) == T)
+  if (length(na_idxes) > 0 ){
+    data_input <- data_input[-na_idxes,]
+  }
+  
+  # Shapiro-Wilk normality test for grp 0 
+  f0_idexes <- which(data_input[,group_name] == 0)
+  
+  if (length(unique(data_input[f0_idexes,feature_name])) != 1){   #check if all values are identical
+    res0 <- shapiro.test(data_input[f0_idexes,feature_name])
+    p0 <- res0$p.value
+  }else{ # if indeitical, then p = -INF < 0.05 -> not norm
+    p0 <- -Inf
+  }
+  
+  # Shapiro-Wilk normality test for grp 1
+  f1_idexes <- which(data_input[,group_name] == 1)
+  if (length(unique(data_input[f1_idexes,feature_name])) != 1){
+    res1 <- shapiro.test(data_input[f1_idexes,feature_name])
+    p1 <- res1$p.value
+  }else {
+    p1 <- -Inf
+  }
+  
+  all_pvalues <- cbind.data.frame(p0,p1)
+  return(all_pvalues)
+}
+
+
+#Grp difference test  function
+grp_diff_test <- function(data_input, feature_to_test,outcome_name,NOT_normed_fs,normed_fs){
+  #feature_to_test <- curr_f
+  #outcome_name <- outcome_label
+
+    
+  f0_idxes <- which(data_input[,outcome_name]==0)
+  frac0_f_values <- data_input[f0_idxes,feature_to_test]
+  f1_idxes <- which(data_input[,outcome_name]==1)
+  frac1_f_values <- data_input[f1_idxes,feature_to_test]
+  
+  if (feature_to_test %in% NOT_normed_fs){
+    #if not norm:Mann-Whitney U test
+    less_res <- wilcox.test(frac0_f_values,frac1_f_values,alternative = "less",   exact = FALSE) #less: f0 < f1
+    greater_res <- wilcox.test(frac0_f_values,frac1_f_values,alternative = "greater",   exact = FALSE) #greater: f0 > f1
+  }else if (feature_to_test %in% normed_fs){
+    #if norm:
+    less_res <- t.test(frac0_f_values,frac1_f_values, alternative = "less", var.equal = FALSE)
+    greater_res <- t.test(frac0_f_values,frac1_f_values, alternative = "greater", var.equal = FALSE)
+    
+  }
+  
+  p_f0_less_f1 <- less_res$p.value
+  p_f0_greater_f1<- greater_res$p.value
+  p_all <- cbind.data.frame(p_f0_greater_f1,p_f0_less_f1)
+  rownames(p_all) <- feature_to_test
+  return(p_all)
+}
+
+
+
+violin_orBar_individual_feature_func <- function(data_input, plot_x,plot_y,grp0_plotname,grp1_plotname){
+  #plot_x <-  label_col_name
+  #plot_y <-  critical_features[f]
+  
+  voilin_plot_data <- data_input[which(is.na(data_input[,plot_x])==F),]
+  grp0_idex <- which(voilin_plot_data[,plot_x] ==0)
+  grp1_idex <- which(voilin_plot_data[,plot_x] ==1)
+  
+  voilin_plot_data[grp0_idex, plot_x] <- grp0_plotname
+  voilin_plot_data[grp1_idex, plot_x] <- grp1_plotname
+  
+  voilin_plot_data[,plot_x] <-as.factor(voilin_plot_data[,plot_x])
+  
+  feature_unique_values_n <- length(levels(factor(voilin_plot_data[,plot_y])))
+  
+  if (feature_unique_values_n > 2){
+    p <- ggplot(voilin_plot_data, aes_string(x=plot_x, y=plot_y)) + 
+      geom_violin() +
+      geom_boxplot(width=0.1) + 
+      theme(axis.text=element_text(size=20),
+            axis.title=element_text(size=20,face="bold")) +
+      labs(y = plot_y,x = "")
+  }else if (feature_unique_values_n == 2){ #if binary, use histogram
+    #Factorize the var, 
+    plot_data <- voilin_plot_data
+    plot_data[,plot_y] <- factor(plot_data[,plot_y])
+    na_idxes <- which(is.na(plot_data[,plot_y])==T)
+    if (length(na_idxes) > 0){ #and remove NA for plot
+      plot_data <- plot_data[-na_idxes,]
+    }
+    
+    p <- ggplot(plot_data, aes_string(x=plot_y, fill = plot_x)) +
+      geom_histogram(alpha = 0.8,position="dodge",stat = "count") +
+      theme(legend.position='bottom',legend.title = element_blank()) +
+      scale_fill_manual(values=c("darkgreen", "darkred"))+
+      theme(axis.text=element_text(size=20),
+            axis.title=element_text(size=20),legend.text = element_text(size = 20))
+  }
+  return(p)
+}
+
+
+violin_orBar_individual_feature3grps_func <- function(data_input, plot_x,plot_y){
+  #plot_x <-  label_col_name
+  #plot_y <-  critical_features[f]
+  
+  voilin_plot_data <- data_input[which(is.na(data_input[,plot_x])==F),]
+  voilin_plot_data[,plot_x] <-as.factor(voilin_plot_data[,plot_x])
+  
+  feature_unique_values_n <- length(levels(factor(voilin_plot_data[,plot_y])))
+  
+  if (feature_unique_values_n > 2){
+    p <- ggplot(voilin_plot_data, aes_string(x=plot_x, y=plot_y)) + 
+      geom_violin() +
+      geom_boxplot(width=0.1) + 
+      theme(axis.text=element_text(size=20),
+            axis.title=element_text(size=20,face="bold")) +
+      labs(y = plot_y,x = "")
+  }else if (feature_unique_values_n == 2){ #if binary, use histogram
+    #Factorize the var, 
+    plot_data <- voilin_plot_data
+    plot_data[,plot_y] <- factor(plot_data[,plot_y])
+    na_idxes <- which(is.na(plot_data[,plot_y])==T)
+    if (length(na_idxes) > 0){ #and remove NA for plot
+      plot_data <- plot_data[-na_idxes,]
+    }
+    
+    p <- ggplot(plot_data, aes_string(x=plot_y, fill = plot_x)) +
+      geom_histogram(alpha = 0.8,position="dodge",stat = "count") +
+      theme(legend.position='bottom',legend.title = element_blank()) +
+      scale_fill_manual(values=c("darkgreen", "darkred"))+
+      theme(axis.text=element_text(size=20),
+            axis.title=element_text(size=20),legend.text = element_text(size = 20))
+  }
+  return(p)
 }
