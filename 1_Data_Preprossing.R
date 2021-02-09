@@ -26,7 +26,7 @@ outcomes <- byyear_res[[4]]
 ID1 <- which(raw_data_df[,"SqRtVOLUMEA"] == 0)
 ID2 <- which(raw_data_df[,"SqRtVOLUME1A"] == 0)
 ID3 <- which(raw_data_df[,"SqRtVOLUME2A"] == 0)
-check <- raw_data_df[c(ID1,ID2,ID3),c("ID","SqRtVOLUMEA","SqRtVOLUME1A","SqRtVOLUME2A")]
+check <- raw_data_df[unique(c(ID1,ID2,ID3)),c("ID","SqRtVOLUMEA","SqRtVOLUME1A","SqRtVOLUME2A","CASCOREA","CASCORE1A","CASCORE2A")]
 write.csv(check,"/Users/lucasliu/Desktop/Patients_SqRtVol0.csv")
 
 ##############################################################################################
@@ -129,7 +129,6 @@ updated_raw_df_outlier_removed[which(updated_raw_df_outlier_removed[,"CASCORE2A"
 updated_raw_df_outlier_removed[which(updated_raw_df_outlier_removed[,"SqRtVOLUMEA"] == 0),"SqRtVOLUMEA"] <- NA
 updated_raw_df_outlier_removed[which(updated_raw_df_outlier_removed[,"SqRtVOLUME1A"] == 0),"SqRtVOLUME1A"] <- NA
 updated_raw_df_outlier_removed[which(updated_raw_df_outlier_removed[,"SqRtVOLUME2A"] == 0),"SqRtVOLUME2A"] <- NA
-
 
 
 #3.Exclude  pts CASCORE <= 10 all time
